@@ -9,12 +9,9 @@ from serial_repl import Pico
 
 DEVICE_FILES = (
     "config.py",
-    "rules.py",
     "effects.py",
-    "tcs34725.py",
     "color_sensor.py",
     "hardware.py",
-    "referee.py",
     "wireless.py",
     "game.py",
     "boot.py",

@@ -42,19 +42,19 @@ class EffectsTests(unittest.TestCase):
             )
         self.assertEqual(counts, [2, 4, 6, 8])
 
-    def test_parry_success_rotates_failure_blinks(self):
-        game_state = {"phase": "RESULT", "winner": 2, "parried": True}
+    def test_defense_success_rotates_failure_blinks(self):
+        game_state = {"phase": "RESULT", "winner": 2, "defended": True}
         self.assertNotEqual(
             create_status_led_pixels(game_state, 1, 8, 0),
             create_status_led_pixels(game_state, 1, 8, 100),
         )
-        self.assertEqual(select_result_melody(game_state, 1), "parry_ok")
-        game_state["parried"] = False
+        self.assertEqual(select_result_melody(game_state, 1), "defense_ok")
+        game_state["defended"] = False
         self.assertEqual(
             create_status_led_pixels(game_state, 1, 8, 0), [(28, 0, 0)] * 8
         )
         self.assertEqual(create_status_led_pixels(game_state, 1, 8, 300), [LED_OFF] * 8)
-        self.assertEqual(select_result_melody(game_state, 1), "parry_fail")
+        self.assertEqual(select_result_melody(game_state, 1), "defense_fail")
 
     def test_final_status_and_melodies(self):
         game_state = {"phase": "GAME_OVER", "winner": 1}

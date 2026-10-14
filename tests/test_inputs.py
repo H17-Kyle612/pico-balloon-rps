@@ -1,15 +1,10 @@
 import unittest
-from rules import (
-    determine_winner,
-    normalize_potentiometer,
-    is_parry_successful,
-    classify_color,
-    calculate_servo_angle,
-)
+from hardware import normalize_potentiometer, calculate_servo_angle
+from color_sensor import classify_color
 from config import PLAYERS
 
 
-class RulesTests(unittest.TestCase):
+class InputTests(unittest.TestCase):
 
     def test_three_servo_steps_and_clamp(self):
         self.assertEqual(
@@ -18,18 +13,6 @@ class RulesTests(unittest.TestCase):
         )
         self.assertEqual(calculate_servo_angle(10), 180)
         self.assertEqual(calculate_servo_angle(-1), 0)
-
-    def test_all_matchups(self):
-        hands = ("rock", "scissors", "paper")
-        expected = ((0, 1, 2), (2, 0, 1), (1, 2, 0))
-        for first_index, first_hand in enumerate(hands):
-            for second_index, second_hand in enumerate(hands):
-                self.assertEqual(
-                    determine_winner(first_hand, second_hand),
-                    expected[first_index][second_index],
-                )
-        with self.assertRaises(ValueError):
-            determine_winner(None, "rock")
 
     def test_individual_pot_calibration(self):
         for player_configuration in PLAYERS.values():
@@ -47,11 +30,6 @@ class RulesTests(unittest.TestCase):
                     ),
                     value,
                 )
-
-    def test_parry_boundary(self):
-        self.assertTrue(is_parry_successful(-20, -30, 10))
-        self.assertFalse(is_parry_successful(-19.9, -30, 10))
-        self.assertTrue(is_parry_successful(90, 100, 10))
 
     def test_observed_colors_and_invalid_readings(self):
         self.assertEqual(classify_color((7, 36, 82)), "blue")

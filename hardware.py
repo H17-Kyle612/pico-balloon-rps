@@ -1,9 +1,8 @@
 """センサー、LED、音、サーボの操作をまとめる。"""
 
-import machine
-import neopixel
 import time
 from config import (
+    COLOR_TO_HAND,
     SOUND_PIN,
     SOUND_DUTY,
     LED_PIN,
@@ -20,7 +19,6 @@ from config import (
     SERVO_END_DEG,
     MAX_DAMAGE,
 )
-from rules import COLOR_TO_HAND, normalize_potentiometer, calculate_servo_angle
 from effects import (
     MELODIES,
     LED_OFF,
@@ -29,6 +27,27 @@ from effects import (
     select_result_melody,
 )
 from color_sensor import ColorSensor
+
+
+def normalize_potentiometer(raw_value, calibration):
+    left_limit, center_value, right_limit = calibration
+    if not left_limit < center_value < right_limit:
+        raise ValueError("Invalid calibration")
+    calibration_span = (
+        center_value - left_limit
+        if raw_value < center_value
+        else right_limit - center_value
+    )
+    return max(-100, min(100, 100 * (raw_value - center_value) / calibration_span))
+
+
+def calculate_servo_angle(
+    failure_count, start_angle=0, end_angle=180, maximum_failures=3
+):
+    if maximum_failures <= 0 or not 0 <= start_angle <= end_angle <= 180:
+        raise ValueError("Invalid servo range")
+    failure_count = max(0, min(maximum_failures, failure_count))
+    return start_angle + (end_angle - start_angle) * failure_count / maximum_failures
 
 
 def servo_duty_for_angle(angle_degrees):
@@ -40,6 +59,9 @@ class GameHardware:
     """各部品の入出力を管理し、ゲームの通信処理から分離する。"""
 
     def __init__(self, servo_enabled=SERVO_ENABLED):
+        import machine
+        import neopixel
+
         self.hand_leds = neopixel.NeoPixel(machine.Pin(LED_PIN), LED_COUNT)
         self.status_leds = neopixel.NeoPixel(machine.Pin(RING_PIN), RING_COUNT)
         self.sound_output = machine.PWM(machine.Pin(SOUND_PIN), freq=440, duty_u16=0)
@@ -105,8 +127,8 @@ class GameHardware:
                 self.next_note_at_ms = None
 
     def play_phase_melody(self, game_state, current_time_ms, player_number):
-        if game_state["phase"] == "PARRY":
-            self.play_melody("parry_window", current_time_ms)
+        if game_state["phase"] == "DEFENSE":
+            self.play_melody("defense_window", current_time_ms)
         elif game_state["phase"] in ("RESULT", "GAME_OVER"):
             self.play_melody(
                 select_result_melody(game_state, player_number), current_time_ms
@@ -128,7 +150,7 @@ class GameHardware:
             self.next_note_at_ms = None
             self.sound_output.duty_u16(0)
             if previous_phase == "COUNTDOWN" and phase_name in (
-                "PARRY",
+                "DEFENSE",
                 "RESULT",
                 "GAME_OVER",
             ):
@@ -189,6 +211,8 @@ class GameHardware:
         self.update_audio(current_time_ms)
 
     def shutdown(self):
+        import machine
+
         if self.servo_output is not None:
             self.servo_output.deinit()
             machine.Pin(SERVO_PIN, machine.Pin.OUT, value=0)

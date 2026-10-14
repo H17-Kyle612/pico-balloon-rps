@@ -5,15 +5,23 @@ import network
 import socket
 import time
 from config import (
+    COLOR_TO_HAND,
     PLAYERS,
     GAME_SSID,
     GAME_PASSWORD,
     GAME_PORT,
     HOST_ADDRESS,
 )
-from rules import COLOR_TO_HAND
 
-PHASES = ("WAIT", "READY", "COUNTDOWN", "PARRY", "PARRY_SAMPLE", "RESULT", "GAME_OVER")
+PHASES = (
+    "WAIT",
+    "READY",
+    "COUNTDOWN",
+    "DEFENSE",
+    "DEFENSE_SAMPLE",
+    "RESULT",
+    "GAME_OVER",
+)
 
 
 def waiting_state():
@@ -67,7 +75,7 @@ class GameConnection:
         self.communication_socket.bind(("0.0.0.0", GAME_PORT))
         self.communication_socket.setblocking(False)
 
-    def receive(self, current_time_ms, referee_state):
+    def receive(self, current_time_ms, host_state):
         if time.ticks_diff(current_time_ms, self.last_diagnostic_at_ms) >= 3000:
             self.last_diagnostic_at_ms = current_time_ms
             print(
@@ -108,8 +116,8 @@ class GameConnection:
                     self.peer_address = sender_address
                 elif (
                     message.get("type") == "sample"
-                    and message.get("session") == referee_state["session"]
-                    and message.get("token") == referee_state["token"]
+                    and message.get("session") == host_state["session"]
+                    and message.get("token") == host_state["token"]
                     and is_valid_input_sample(message.get("sample"))
                 ):
                     self.remote_peer = {

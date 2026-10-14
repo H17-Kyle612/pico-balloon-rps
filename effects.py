@@ -1,33 +1,28 @@
+"""LEDパターンと通知音。ゲーム進行はgame.pyが担当する。"""
+
+from config import DEFENSE_DURATION_MS
+
 HAND_COLORS = {"rock": (28, 0, 0), "scissors": (0, 28, 0), "paper": (0, 0, 28)}
 LED_OFF = (0, 0, 0)
 NOTE_FREQUENCIES = {
     "-": 0,
     "C4": 262,
-    "D4": 294,
     "E4": 330,
-    "F4": 349,
     "G4": 392,
     "A4": 440,
     "B4": 494,
     "C5": 523,
     "D5": 587,
     "E5": 659,
-    "F5": 698,
     "G5": 784,
-    "A5": 880,
-    "B5": 988,
     "C6": 1047,
-    "D6": 1175,
-    "E6": 1319,
 }
 
 
 def compile_melody(note_events):
     return tuple(
-        (
-            (NOTE_FREQUENCIES[note_name], duration_ms)
-            for note_name, duration_ms in note_events
-        )
+        (NOTE_FREQUENCIES[note_name], duration_ms)
+        for note_name, duration_ms in note_events
     )
 
 
@@ -37,10 +32,10 @@ MELODIES = {
     "count_2": compile_melody((("G4", 140),)),
     "count_3": compile_melody((("C5", 180),)),
     "go": compile_melody((("G5", 70), ("-", 20), ("C6", 140))),
-    "parry_window": compile_melody((("E5", 100), ("-", 40), ("G5", 100))),
+    "defense_window": compile_melody((("E5", 100), ("-", 40), ("G5", 100))),
     # ブドウ成立音をイメージした擬似音。短いドを6回鳴らす。
-    "parry_ok": compile_melody((("C5", 70), ("-", 35)) * 6),
-    "parry_fail": compile_melody(
+    "defense_ok": compile_melody((("C5", 70), ("-", 35)) * 6),
+    "defense_fail": compile_melody(
         (("G4", 180), ("-", 30), ("E4", 180), ("-", 30), ("C4", 320))
     ),
     "win": compile_melody(
@@ -109,7 +104,7 @@ def create_hand_led_pixels(game_state, player_number, led_count, own_led_start):
         ]
     displayed_hands = (
         game_state.get("hands")
-        if game_state["phase"] in ("PARRY", "PARRY_SAMPLE", "RESULT", "GAME_OVER")
+        if game_state["phase"] in ("DEFENSE", "DEFENSE_SAMPLE", "RESULT", "GAME_OVER")
         else game_state.get("live_hands")
     )
     displayed_hands = displayed_hands or (None, None)
@@ -131,7 +126,7 @@ def create_status_led_pixels(game_state, player_number, led_count, elapsed_ms):
     if phase_name in ("RESULT", "GAME_OVER"):
         if (
             phase_name == "RESULT"
-            and game_state.get("parried")
+            and game_state.get("defended")
             and (player_number == 3 - winner_number)
         ):
             return [
@@ -143,26 +138,23 @@ def create_status_led_pixels(game_state, player_number, led_count, elapsed_ms):
         if winner_number == player_number:
             if elapsed_ms < 160:
                 return [(28, 28, 28)] * led_count
+            if phase_name == "GAME_OVER":
+                return [(25, 18, 0)] * led_count
+            highlighted_led = elapsed_ms // 120 % led_count
             return [
-                (
-                    (25, 18, 0)
-                    if phase_name == "GAME_OVER"
-                    else (
-                        (22, 0, 28)
-                        if led_index == elapsed_ms // 120 % led_count
-                        else (8, 0, 12)
-                    )
-                )
+                (22, 0, 28) if led_index == highlighted_led else (8, 0, 12)
                 for led_index in range(led_count)
             ]
         return [(12, 12, 12)] * led_count
-    if phase_name in ("PARRY", "PARRY_SAMPLE"):
+    if phase_name in ("DEFENSE", "DEFENSE_SAMPLE"):
         remaining_ms = (
-            max(0, 3000 - game_state.get("elapsed_ms", 0))
-            if phase_name == "PARRY"
+            max(0, DEFENSE_DURATION_MS - game_state.get("elapsed_ms", 0))
+            if phase_name == "DEFENSE"
             else 0
         )
-        lit_led_count = (remaining_ms * led_count + 2999) // 3000
+        lit_led_count = (
+            remaining_ms * led_count + DEFENSE_DURATION_MS - 1
+        ) // DEFENSE_DURATION_MS
         return [
             (25, 10, 0) if led_index < lit_led_count else LED_OFF
             for led_index in range(led_count)
@@ -179,4 +171,4 @@ def select_result_melody(game_state, player_number):
         return "draw"
     if player_number == winner_number:
         return "win"
-    return "parry_ok" if game_state.get("parried") else "parry_fail"
+    return "defense_ok" if game_state.get("defended") else "defense_fail"
