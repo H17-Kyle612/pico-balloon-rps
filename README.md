@@ -33,6 +33,14 @@
 
 縦型は手の色を上下に表示し、カウント中は赤が2→4→6→8個に増えます。丸型は成功時に虹色回転、失敗時に赤点滅、勝利時に白フラッシュと紫、最終勝利時に金色です。
 
+## ファイルの区分
+
+- ルートのゲーム用Pythonファイル：Picoで実行するコード。
+- `scripts/`：PCで使う任意の保存・ログ監視ツールと、その設定・依存ライブラリ。
+- `tests/`：PCで実行するテスト。
+
+Picoへ保存するのは、`boot.py`、`main.py`、`game.py`、`config.py`、`referee.py`、`wireless.py`、`hardware.py`、`rules.py`、`effects.py`、`color_sensor.py`、`tcs34725.py`の11ファイルです。Thonnyで手動保存する場合は、scripts/の準備は必要ありません。
+
 ## 開発・実機への保存
 
 PC用ツールはPython 3.10以上、Pico側はMicroPython 1.27.0のPico W版で確認しています。
@@ -40,9 +48,9 @@ PC用ツールはPython 3.10以上、Pico側はMicroPython 1.27.0のPico W版で
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install -r requirements.txt
+python3 -m pip install -r scripts/requirements.txt
 cp config_example.py config.py
-cp devices.example.json devices.json
+cp scripts/devices.example.json scripts/devices.json
 ```
 
 1. Thonnyのシェルで各Picoの固有IDを取得します。
@@ -53,28 +61,28 @@ cp devices.example.json devices.json
    ```
 
 2. `config.py`のPLAYERSのキーを取得した1P・2Pの固有IDへ置き換え、可変抵抗器の校正値を設定します。GAME_SSIDとGAME_PASSWORDは両機共通です。Wi-Fiパスワードは8文字以上の任意の値へ変更してください。
-3. `devices.json`にも同じ固有IDと各PicoのUSBポートを設定します。macOSでは`/dev/cu.usbmodem...`、Windowsでは`COM...`などです。
+3. `scripts/devices.json`にも同じ固有IDと各PicoのUSBポートを設定します。macOSでは`/dev/cu.usbmodem...`、Windowsでは`COM...`などです。
 4. Thonnyを閉じてから、次で保存します。
 
    ```sh
-   python3 install_game.py
+   python3 scripts/install_game.py
    ```
 
 保存前にPicoの固有IDを照合し、旧ファイルをbackups/へ保存します。全11ファイルを一時ファイルへ送信してSHA256で照合した後、保存名を切り替えます。更新中は電源を切らないでください。保存後の再起動は行いません。
 
-`config.py`・`devices.json`は端末固有の設定としてGit管理から除外しています。公開する際には設定例だけを更新してください。
+`config.py`・`scripts/devices.json`は端末固有の設定としてGit管理から除外しています。公開する際には設定例だけを更新してください。
 
 ## USBでリアルタイムログを見る
 
 両PicoをUSBでPCへ接続し、次を実行します。
 
 ```sh
-python3 watch_pico_logs.py
+python3 scripts/watch_pico_logs.py
 ```
 
 時刻とプレイヤー名を付け、状態変化をGAME、3秒ごとの接続情報をLINK、サーボ移動をSERVOで表示します。センサー値の毎回の読み取りログはありません。監視は読み取り専用で、Ctrl+CはPC側の監視だけを停止します。
 
-既定のUSBポートはdevices.jsonを参照します。ポートが変わった場合は更新してください。個別に指定する場合は`python3 watch_pico_logs.py ポート名`です。Thonnyなどが同じUSBポートを使用中の場合は閉じてください。ゲーム通信はPico同士のWi-Fiで行い、WebREPLは起動しません。
+既定のUSBポートはscripts/devices.jsonを参照します。ポートが変わった場合は更新してください。個別に指定する場合は`python3 scripts/watch_pico_logs.py ポート名`です。Thonnyなどが同じUSBポートを使用中の場合は閉じてください。ゲーム通信はPico同士のWi-Fiで行い、WebREPLは起動しません。
 
 各Picoは給電・再起動の5秒後に自動起動します。起動時にはサーボが0°へ動きます。
 
@@ -98,7 +106,7 @@ Picoへも上記の分割ファイルをそのまま保存します。
 判定と演出のテストは次で実行します。
 
 ```sh
-python3 -m unittest discover -s . -p 'test_*.py'
+python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
 ## パリィ成功音

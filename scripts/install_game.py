@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-SOURCE_DIRECTORY = Path(__file__).resolve().parent
+SOURCE_DIRECTORY = Path(__file__).resolve().parent.parent
 from serial_repl import Pico
 
 DEVICE_FILES = (
@@ -71,7 +71,7 @@ def upload_file(device, filename):
 
 
 def install():
-    mapping_path = SOURCE_DIRECTORY / "devices.json"
+    mapping_path = Path(__file__).resolve().parent / "devices.json"
     for player in json.loads(mapping_path.read_text()):
         device = Pico(player["port"])
         try:
