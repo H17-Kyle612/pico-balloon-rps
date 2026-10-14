@@ -1,0 +1,17 @@
+# 実機用の設定と接続情報
+config.py
+devices.json
+# 過去のバックアップと試験ログ
+backups/
+*_results.txt
+*.log
+# ローカル環境
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store
+# 過去の部品確認用スクリプト
+check_led_layout.py
+check_effects_hardware.py
+recheck_ring.py
+check_game.py

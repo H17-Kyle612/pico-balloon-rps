@@ -1,0 +1,12 @@
+[
+  {
+    "player": 1,
+    "uid": "PLAYER_1_DEVICE_ID",
+    "port": "/dev/cu.usbmodemXXXX"
+  },
+  {
+    "player": 2,
+    "uid": "PLAYER_2_DEVICE_ID",
+    "port": "/dev/cu.usbmodemYYYY"
+  }
+]
