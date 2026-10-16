@@ -42,12 +42,12 @@ def normalize_potentiometer(raw_value, calibration):
 
 
 def calculate_servo_angle(
-    failure_count, start_angle=0, end_angle=180, maximum_failures=3
+    hit_count, start_angle=0, end_angle=180, maximum_hits=3
 ):
-    if maximum_failures <= 0 or not 0 <= start_angle <= end_angle <= 180:
+    if maximum_hits <= 0 or not 0 <= start_angle <= end_angle <= 180:
         raise ValueError("Invalid servo range")
-    failure_count = max(0, min(maximum_failures, failure_count))
-    return start_angle + (end_angle - start_angle) * failure_count / maximum_failures
+    hit_count = max(0, min(maximum_hits, hit_count))
+    return start_angle + (end_angle - start_angle) * hit_count / maximum_hits
 
 
 def servo_duty_for_angle(angle_degrees):
@@ -80,7 +80,7 @@ class GameHardware:
         self.color_stable_since_ms = time.ticks_ms()
         self.potentiometer_samples = []
         self.servo_output = None
-        self.applied_failures = 0
+        self.applied_hits = 0
         if servo_enabled:
             self.servo_output = machine.PWM(machine.Pin(SERVO_PIN), freq=50, duty_u16=0)
             self.servo_output.duty_u16(servo_duty_for_angle(SERVO_START_DEG))
@@ -164,21 +164,21 @@ class GameHardware:
             if countdown_stage != self.countdown_stage:
                 self.countdown_stage = countdown_stage
                 self.play_melody("count_" + str(countdown_stage), current_time_ms)
-        # 累積失敗数を使い、同じ通信が再送されてもサーボを余分に進めない。
-        failure_count = min(
+        # 累積被弾回数を使い、同じ通信が再送されてもサーボを余分に進めない。
+        hit_count = min(
             MAX_DAMAGE,
             max(
-                self.applied_failures,
+                self.applied_hits,
                 game_state.get("damage", [0, 0])[player_number - 1],
             ),
         )
-        if self.servo_output is not None and failure_count > self.applied_failures:
+        if self.servo_output is not None and hit_count > self.applied_hits:
             target_angle = calculate_servo_angle(
-                failure_count, SERVO_START_DEG, SERVO_END_DEG, MAX_DAMAGE
+                hit_count, SERVO_START_DEG, SERVO_END_DEG, MAX_DAMAGE
             )
             self.servo_output.duty_u16(servo_duty_for_angle(target_angle))
             print("SERVO", player_number, target_angle)
-        self.applied_failures = failure_count
+        self.applied_hits = hit_count
         if (
             self.last_frame_at_ms is None
             or time.ticks_diff(current_time_ms, self.last_frame_at_ms) >= 40

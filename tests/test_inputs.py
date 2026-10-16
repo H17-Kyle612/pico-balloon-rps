@@ -8,7 +8,7 @@ class InputTests(unittest.TestCase):
 
     def test_three_servo_steps_and_clamp(self):
         self.assertEqual(
-            [calculate_servo_angle(failure_count) for failure_count in range(4)],
+            [calculate_servo_angle(hit_count) for hit_count in range(4)],
             [0, 60, 120, 180],
         )
         self.assertEqual(calculate_servo_angle(10), 180)

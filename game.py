@@ -128,24 +128,25 @@ class GameController:
             self.change_phase("DEFENSE_SAMPLE", current_time_ms, 1000)
         elif phase_name == "DEFENSE_SAMPLE":
             if peer_matches_phase:
-                winner_number = self.state["winner"]
-                loser_number = 3 - winner_number
+                attacker_number = self.state["winner"]
+                defender_number = 3 - attacker_number
                 normalized_value = (
                     self.final_local_potentiometer_value
-                    if loser_number == 1
+                    if defender_number == 1
                     else remote_peer["sample"]["pot"]
                 )
-                target_value = self.target_potentiometer_values[winner_number - 1]
-                # 防御成功ならサーボを進めず、失敗したときだけ失敗数を増やす。
+                target_value = self.target_potentiometer_values[attacker_number - 1]
                 defense_succeeded = (
                     abs(normalized_value - target_value) <= DEFENSE_TOLERANCE
                 )
                 self.state["defended"] = defense_succeeded
                 self.state["error"] = round(abs(normalized_value - target_value), 1)
-                if not defense_succeeded:
-                    self.state["damage"][loser_number - 1] += 1
-                if self.state["damage"][loser_number - 1] >= MAX_DAMAGE:
-                    self.state["loser"] = loser_number
+                # 防御成功なら攻撃側へカウンターし、そのラウンドの勝敗も反転する。
+                damaged_player = attacker_number if defense_succeeded else defender_number
+                self.state["winner"] = 3 - damaged_player
+                self.state["damage"][damaged_player - 1] += 1
+                if self.state["damage"][damaged_player - 1] >= MAX_DAMAGE:
+                    self.state["loser"] = damaged_player
                     self.change_phase("GAME_OVER", current_time_ms)
                 else:
                     self.change_phase("RESULT", current_time_ms, 2500)

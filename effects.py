@@ -127,7 +127,7 @@ def create_status_led_pixels(game_state, player_number, led_count, elapsed_ms):
         if (
             phase_name == "RESULT"
             and game_state.get("defended")
-            and (player_number == 3 - winner_number)
+            and player_number == winner_number
         ):
             return [
                 rainbow_color(led_index * 1536 // led_count + elapsed_ms * 2)
@@ -170,5 +170,5 @@ def select_result_melody(game_state, player_number):
     if not winner_number:
         return "draw"
     if player_number == winner_number:
-        return "win"
-    return "defense_ok" if game_state.get("defended") else "defense_fail"
+        return "defense_ok" if game_state.get("defended") else "win"
+    return "defense_fail"

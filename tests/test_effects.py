@@ -43,13 +43,17 @@ class EffectsTests(unittest.TestCase):
         self.assertEqual(counts, [2, 4, 6, 8])
 
     def test_defense_success_rotates_failure_blinks(self):
-        game_state = {"phase": "RESULT", "winner": 2, "defended": True}
+        game_state = {"phase": "RESULT", "winner": 1, "defended": True}
         self.assertNotEqual(
             create_status_led_pixels(game_state, 1, 8, 0),
             create_status_led_pixels(game_state, 1, 8, 100),
         )
         self.assertEqual(select_result_melody(game_state, 1), "defense_ok")
+        self.assertEqual(select_result_melody(game_state, 2), "defense_fail")
+        self.assertEqual(create_status_led_pixels(game_state, 2, 8, 0), [(28, 0, 0)] * 8)
+        self.assertEqual(create_status_led_pixels(game_state, 2, 8, 300), [LED_OFF] * 8)
         game_state["defended"] = False
+        game_state["winner"] = 2
         self.assertEqual(
             create_status_led_pixels(game_state, 1, 8, 0), [(28, 0, 0)] * 8
         )

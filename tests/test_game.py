@@ -47,7 +47,10 @@ class GameFlowTests(unittest.TestCase):
         self.assertEqual(controller.state["phase"], "DEFENSE_SAMPLE")
         controller.update(7010, sample(), remote(controller, 7010, pot=31))
         self.assertTrue(controller.state["defended"])
-        self.assertEqual(controller.state["damage"], [0, 0])
+        self.assertEqual(controller.state["winner"], 2)
+        self.assertEqual(controller.state["damage"], [1, 0])
+        controller.update(7011, sample(), remote(controller, 7011, pot=31))
+        self.assertEqual(controller.state["damage"], [1, 0])
 
     def test_player_one_defends_against_player_two_target(self):
         controller = GameController()
@@ -67,7 +70,8 @@ class GameFlowTests(unittest.TestCase):
             7010, sample("rock", -100), remote(controller, 7010, "paper", -90)
         )
         self.assertTrue(controller.state["defended"])
-        self.assertEqual(controller.state["damage"], [0, 0])
+        self.assertEqual(controller.state["winner"], 1)
+        self.assertEqual(controller.state["damage"], [0, 1])
 
     def test_all_matchups(self):
         hands = ("rock", "scissors", "paper")
@@ -94,7 +98,7 @@ class GameFlowTests(unittest.TestCase):
                 controller.change_phase("DEFENSE_SAMPLE", 0, 1000)
                 controller.update(1, sample(), remote(controller, 1, pot=current_value))
                 self.assertEqual(controller.state["defended"], expected)
-                self.assertEqual(controller.state["damage"], [0, 0 if expected else 1])
+                self.assertEqual(controller.state["damage"], [1, 0] if expected else [0, 1])
 
     def test_damage_once(self):
         controller = self.setup_round()
@@ -104,7 +108,7 @@ class GameFlowTests(unittest.TestCase):
         controller.update(7011, sample(), remote(controller, 7011, pot=-100))
         self.assertEqual(controller.state["damage"], [0, 1])
 
-    def test_third_failure_finishes_and_latches(self):
+    def test_third_attack_hit_finishes_and_latches(self):
         for loser in (1, 2):
             controller = self.setup_round()
             controller.state["winner"] = 3 - loser
@@ -122,6 +126,25 @@ class GameFlowTests(unittest.TestCase):
             controller.update(100000, sample(), None)
             self.assertEqual(controller.state["phase"], "GAME_OVER")
             self.assertEqual(controller.state["damage"][loser - 1], 3)
+
+    def test_third_counter_hit_finishes_and_latches(self):
+        for attacker in (1, 2):
+            with self.subTest(attacker=attacker):
+                controller = GameController()
+                controller.target_potentiometer_values = (30, 30)
+                controller.final_local_potentiometer_value = 30
+                controller.state["winner"] = attacker
+                controller.state["damage"][attacker - 1] = 2
+                controller.change_phase("DEFENSE_SAMPLE", 0, 1000)
+                controller.update(1, sample(pot=30), remote(controller, 1, pot=30))
+                self.assertTrue(controller.state["defended"])
+                self.assertEqual(controller.state["winner"], 3 - attacker)
+                self.assertEqual(controller.state["loser"], attacker)
+                self.assertEqual(controller.state["damage"][attacker - 1], 3)
+                self.assertEqual(controller.state["phase"], "GAME_OVER")
+                controller.update(10000, sample(), None)
+                self.assertEqual(controller.state["damage"][attacker - 1], 3)
+                self.assertEqual(controller.state["phase"], "GAME_OVER")
 
     def test_stale_packet_and_disconnect(self):
         controller = self.setup_round()
