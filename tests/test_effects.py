@@ -60,6 +60,22 @@ class EffectsTests(unittest.TestCase):
         self.assertEqual(create_status_led_pixels(game_state, 1, 8, 300), [LED_OFF] * 8)
         self.assertEqual(select_result_melody(game_state, 1), "defense_fail")
 
+    def test_final_winner_flashes_both_strips_and_loser_stays_red(self):
+        for winner in (1, 2):
+            state = {"phase": "GAME_OVER", "winner": winner, "hands": ["rock", "paper"]}
+            for elapsed_ms in (0, 120, 240, 500):
+                self.assertEqual(
+                    create_hand_led_pixels(state, winner, 8, 0, elapsed_ms),
+                    create_status_led_pixels(state, winner, 8, elapsed_ms),
+                )
+            flash = create_status_led_pixels(state, winner, 8, 0)
+            rainbow = create_status_led_pixels(state, winner, 8, 120)
+            self.assertEqual(flash, [(64, 64, 64)] * 8)
+            self.assertGreater(len(set(rainbow)), 2)
+            self.assertNotEqual(rainbow, create_status_led_pixels(state, winner, 8, 240))
+            self.assertEqual(create_status_led_pixels(state, 3 - winner, 8, 0), [(28, 0, 0)] * 8)
+            self.assertEqual(create_status_led_pixels(state, 3 - winner, 8, 300), [LED_OFF] * 8)
+
     def test_final_status_and_melodies(self):
         game_state = {"phase": "GAME_OVER", "winner": 1}
         self.assertEqual(select_result_melody(game_state, 1), "champion")

@@ -50,21 +50,10 @@ MELODIES = {
         )
     ),
     "draw": compile_melody((("D5", 150), ("-", 70), ("D5", 150))),
-    "champion": compile_melody(
-        (
-            ("C5", 110),
-            ("-", 20),
-            ("E5", 110),
-            ("-", 20),
-            ("G5", 110),
-            ("-", 20),
-            ("C6", 220),
-            ("-", 50),
-            ("G5", 110),
-            ("-", 20),
-            ("C6", 420),
-        )
-    ),
+    # 高音へ駆け上がり、最後に揺らして「キュイーン」を表現する。
+    "champion": tuple((frequency_hz, 20) for frequency_hz in range(700, 3501, 100))
+    + ((3500, 60), (3700, 60)) * 5
+    + ((3500, 240),),
     "defeat": compile_melody(
         (
             ("C5", 180),
@@ -95,7 +84,26 @@ def rainbow_color(position):
     return tuple((channel_value // 10 for channel_value in colors[color_sector]))
 
 
-def create_hand_led_pixels(game_state, player_number, led_count, own_led_start):
+def create_victory_pixels(led_count, elapsed_ms):
+    # 虹色を高速で回し、白い光と全灯フラッシュを重ねる。
+    if elapsed_ms % 500 < 80:
+        return [(64, 64, 64)] * led_count
+    pixels = [
+        tuple(
+            channel * 2
+            for channel in rainbow_color(led_index * 1536 // led_count + elapsed_ms * 8)
+        )
+        for led_index in range(led_count)
+    ]
+    pixels[elapsed_ms // 80 % led_count] = (64, 64, 64)
+    return pixels
+
+
+def create_hand_led_pixels(
+    game_state, player_number, led_count, own_led_start, elapsed_ms=0
+):
+    if game_state["phase"] == "GAME_OVER" and game_state.get("winner") == player_number:
+        return create_victory_pixels(led_count, elapsed_ms)
     if game_state["phase"] == "COUNTDOWN":
         countdown_stage = min(3, max(0, game_state.get("elapsed_ms", 0) // 750))
         return [
@@ -136,10 +144,10 @@ def create_status_led_pixels(game_state, player_number, led_count, elapsed_ms):
         if winner_number and player_number != winner_number:
             return [(28, 0, 0) if elapsed_ms % 500 < 250 else LED_OFF] * led_count
         if winner_number == player_number:
+            if phase_name == "GAME_OVER":
+                return create_victory_pixels(led_count, elapsed_ms)
             if elapsed_ms < 160:
                 return [(28, 28, 28)] * led_count
-            if phase_name == "GAME_OVER":
-                return [(25, 18, 0)] * led_count
             highlighted_led = elapsed_ms // 120 % led_count
             return [
                 (22, 0, 28) if led_index == highlighted_led else (8, 0, 12)

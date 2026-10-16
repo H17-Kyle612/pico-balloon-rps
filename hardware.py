@@ -177,8 +177,9 @@ class GameHardware:
             or time.ticks_diff(current_time_ms, self.last_frame_at_ms) >= 40
         ):
             self.last_frame_at_ms = current_time_ms
+            elapsed_ms = time.ticks_diff(current_time_ms, self.phase_started_at_ms)
             hand_pixels = create_hand_led_pixels(
-                game_state, player_number, LED_COUNT, OWN_LED_START
+                game_state, player_number, LED_COUNT, OWN_LED_START, elapsed_ms
             )
             if (
                 self.start_flash_ends_at_ms is not None
@@ -196,7 +197,7 @@ class GameHardware:
                     game_state,
                     player_number,
                     RING_COUNT,
-                    time.ticks_diff(current_time_ms, self.phase_started_at_ms),
+                    elapsed_ms,
                 )
             ):
                 self.status_leds[led_index] = pixel_color
