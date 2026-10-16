@@ -37,7 +37,6 @@ class GameController:
         self.phase_deadline_ms = None
         self.target_potentiometer_values = None
         self.final_local_potentiometer_value = None
-        self.ready_since_ms = None
 
     def change_phase(self, phase_name, current_time_ms, duration_ms=None):
         self.state["phase"] = phase_name
@@ -48,7 +47,6 @@ class GameController:
             if duration_ms is not None
             else None
         )
-        self.ready_since_ms = None
 
     def update(self, current_time_ms, local_sample, remote_peer):
         peer_is_fresh = (
@@ -85,30 +83,24 @@ class GameController:
         elif phase_name == "READY":
             if (
                 peer_matches_phase
-                and local_sample["stable"]
-                and remote_peer["sample"]["stable"]
+                and local_sample["hand"] in COLOR_TO_HAND.values()
+                and remote_peer["sample"]["hand"] in COLOR_TO_HAND.values()
             ):
-                if self.ready_since_ms is None:
-                    self.ready_since_ms = current_time_ms
-                if time.ticks_diff(current_time_ms, self.ready_since_ms) >= 1000:
-                    self.target_potentiometer_values = (
-                        local_sample["pot"],
-                        remote_peer["sample"]["pot"],
-                    )
-                    self.state["round"] += 1
-                    for state_key in ("winner", "defended", "hands", "error"):
-                        self.state.pop(state_key, None)
-                    self.change_phase("COUNTDOWN", current_time_ms, 3000)
-            else:
-                self.ready_since_ms = None
+                self.target_potentiometer_values = (
+                    local_sample["pot"], remote_peer["sample"]["pot"]
+                )
+                self.state["round"] += 1
+                for state_key in ("winner", "defended", "hands", "error"):
+                    self.state.pop(state_key, None)
+                self.change_phase("COUNTDOWN", current_time_ms, 3000)
         elif (
             phase_name == "COUNTDOWN"
             and time.ticks_diff(current_time_ms, self.phase_deadline_ms) >= 0
         ):
             if (
                 not peer_matches_phase
-                or not local_sample["stable"]
-                or (not remote_peer["sample"]["stable"])
+                or local_sample["hand"] not in COLOR_TO_HAND.values()
+                or remote_peer["sample"]["hand"] not in COLOR_TO_HAND.values()
             ):
                 self.change_phase("READY", current_time_ms)
                 return
@@ -185,7 +177,7 @@ def run_game(maximum_runtime_seconds=None, servo_enabled=None):
             < maximum_runtime_seconds * 1000
         ):
             current_time_ms = time.ticks_ms()
-            local_sample = hardware.read_inputs(current_time_ms, player_settings["pot"])
+            local_sample = hardware.read_inputs(player_settings["pot"])
             connection.receive(
                 current_time_ms, controller.state if controller else None
             )

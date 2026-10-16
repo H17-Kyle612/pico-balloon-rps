@@ -13,7 +13,7 @@ class TestClock:
 
 
 def sample(hand="rock", pot=0):
-    return {"hand": hand, "stable": True, "pot": pot}
+    return {"hand": hand, "pot": pot}
 
 
 def remote(controller, current_time_ms, hand="scissors", pot=0):
@@ -40,6 +40,28 @@ class GameFlowTests(unittest.TestCase):
         controller.update(4001, sample("rock", -90), remote(controller, 4001, pot=90))
         self.assertEqual(controller.state["phase"], "DEFENSE")
         return controller
+
+    def test_countdown_starts_without_color_wait_and_accepts_last_moment_change(self):
+        controller = GameController()
+        controller.update(0, sample("rock", 30), remote(controller, 0, "paper", -40))
+        controller.update(1, sample("rock", 30), remote(controller, 1, "paper", -40))
+        self.assertEqual(controller.state["phase"], "COUNTDOWN")
+        self.assertEqual(controller.phase_deadline_ms, 3001)
+        controller.update(3000, sample("paper"), remote(controller, 3000, "rock"))
+        self.assertEqual(controller.state["phase"], "COUNTDOWN")
+        controller.update(3001, sample("paper"), remote(controller, 3001, "rock"))
+        self.assertEqual(controller.state["hands"], ("paper", "rock"))
+        self.assertEqual(controller.state["winner"], 1)
+        self.assertEqual(controller.state["phase"], "DEFENSE")
+
+    def test_unrecognized_color_at_deadline_restarts_preparation(self):
+        controller = GameController()
+        controller.update(0, sample(), remote(controller, 0))
+        controller.update(1, sample(), remote(controller, 1))
+        controller.update(3001, sample(None), remote(controller, 3001))
+        self.assertEqual(controller.state["phase"], "READY")
+        self.assertNotIn("winner", controller.state)
+        self.assertEqual(controller.state["damage"], [0, 0])
 
     def test_frozen_target_and_duplicate_result(self):
         controller = self.setup_round()

@@ -39,7 +39,6 @@ def is_valid_input_sample(sample):
         isinstance(sample, dict)
         and sample.get("color") in (None, "red", "green", "blue")
         and sample.get("hand") == COLOR_TO_HAND.get(sample.get("color"))
-        and type(sample.get("stable")) is bool
         and isinstance(sample.get("pot"), (int, float))
         and -100 <= sample["pot"] <= 100
     )

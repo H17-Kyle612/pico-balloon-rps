@@ -50,6 +50,7 @@ class ColorSensor:
     def __init__(self, communication_bus, address=0x29):
         self.communication_bus = communication_bus
         self.address = address
+        self.last_color = None
         sensor_id = self._read_byte(_SENSOR_ID)
         if sensor_id not in (0x44, 0x10, 0x4D):
             raise RuntimeError("Unexpected color sensor ID: " + hex(sensor_id))
@@ -72,16 +73,17 @@ class ColorSensor:
         )
 
     def read_color(self):
-        # 新しい測定がないときは待たずに戻る。
+        # 測定の合間は直近の結果を使い、新しい測定が届いたら即座に更新する。
         if not self._read_byte(_STATUS) & 1:
-            return None
+            return self.last_color
         readings = []
         for register_address in (_RED, _GREEN, _BLUE, _CLEAR):
             sensor_bytes = self.communication_bus.readfrom_mem(
                 self.address, register_address | _COMMAND_BIT, 2
             )
             readings.append(struct.unpack("<H", sensor_bytes)[0])
-        return classify_color(convert_sensor_rgb(readings))
+        self.last_color = classify_color(convert_sensor_rgb(readings))
+        return self.last_color
 
     def shutdown(self):
         self._write_byte(_ENABLE, self._read_byte(_ENABLE) & ~3)

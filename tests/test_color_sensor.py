@@ -50,6 +50,18 @@ class ColorSensorTests(unittest.TestCase):
         bus.registers[0x13] = 0
         self.assertIsNone(sensor.read_color())
 
+    def test_last_sample_is_kept_only_until_next_measurement(self):
+        bus = SensorBus(1000, 10, 10, 1000)
+        sensor = ColorSensor(bus)
+        self.assertEqual(sensor.read_color(), "red")
+        bus.registers[0x13] = 0
+        self.assertEqual(sensor.read_color(), "red")
+        bus.registers[0x13] = 1
+        bus.registers[0x16], bus.registers[0x18] = 10, 1000
+        self.assertEqual(sensor.read_color(), "green")
+        bus.registers[0x14] = 0
+        self.assertIsNone(sensor.read_color())
+
     def test_wrong_device_is_rejected(self):
         bus = SensorBus()
         bus.registers[0x12] = 0

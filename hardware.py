@@ -76,8 +76,6 @@ class GameHardware:
         self.countdown_stage = -1
         self.start_flash_ends_at_ms = None
         self.last_event = None
-        self.last_detected_color = None
-        self.color_stable_since_ms = time.ticks_ms()
         self.potentiometer_samples = []
         self.servo_output = None
         self.applied_hits = 0
@@ -85,11 +83,8 @@ class GameHardware:
             self.servo_output = machine.PWM(machine.Pin(SERVO_PIN), freq=50, duty_u16=0)
             self.servo_output.duty_u16(servo_duty_for_angle(SERVO_START_DEG))
 
-    def read_inputs(self, current_time_ms, calibration):
+    def read_inputs(self, calibration):
         color = self.color_sensor.read_color()
-        if color != self.last_detected_color:
-            self.last_detected_color = color
-            self.color_stable_since_ms = current_time_ms
         self.potentiometer_samples.append(self.potentiometer_input.read_u16() >> 4)
         if len(self.potentiometer_samples) > 5:
             self.potentiometer_samples.pop(0)
@@ -100,8 +95,6 @@ class GameHardware:
         return {
             "color": color,
             "hand": COLOR_TO_HAND.get(color),
-            "stable": color is not None
-            and time.ticks_diff(current_time_ms, self.color_stable_since_ms) >= 600,
             "pot": round(normalized_value, 1),
         }
 
