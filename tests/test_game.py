@@ -109,9 +109,12 @@ class GameFlowTests(unittest.TestCase):
 
     def test_defense_tolerance_boundary(self):
         for current_value, target_value, expected in (
-            (-20, -30, True),
-            (-19.9, -30, False),
-            (90, 100, True),
+            (0, -30, True),
+            (0.1, -30, False),
+            (70, 100, True),
+            (69.9, 100, False),
+            (-30, 0, True),
+            (-30.1, 0, False),
         ):
             with self.subTest(current_value=current_value, target_value=target_value):
                 controller = GameController()
